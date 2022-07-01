@@ -7,8 +7,7 @@ from nilearn import datasets, image
 
 class Solver():
 
-    def __init__(self, list_regions, n_folds=150, resample=1, random_state=42, frac_sample=0.7):
-        self.regions = list_regions
+    def __init__(self, n_folds=150, resample=1, random_state=42, frac_sample=0.7):
         self.n_folds = n_folds
         self.random_state = random_state
         self.frac_sample = frac_sample
@@ -156,7 +155,7 @@ class Solver():
         filtered = f_term.as_pandas_dataframe()
         filtered_terms = nl.add_tuple_set(filtered.values, name='filtered_terms')
 
-        for id_region in regions:
+        for id_region in regions.r_number.values.astype(int):
             try:
                 with nl.scope as e:
 
@@ -207,8 +206,7 @@ class Solver():
                     res = nl.query((e.t, e.f, e.bf, e.p, e.pn), e.ans[e.t, e.f, e.bf, e.p, e.pn])
 
                     pss = res.as_pandas_dataframe()
-                    pss.to_hdf(f'{results_path}neuro_paper_ri_term_probs_region{id_region}_{self.n_folds}folds_no_resample.hdf', key=f'results')
-
+                    pss.to_hdf(f'{results_path}neuro_paper_ri_term_probs_region{id_region}.hdf', key=f'results')
 
             except Exception as e:
                 print(f'Failed on region: {id_region}')
