@@ -6,14 +6,13 @@ from neurolang.frontend import NeurolangPDL
 from nilearn import datasets, image
 
 
-def run(brain_image, radius=4, n_folds=150, resample=1, frac_sample=0.7):
+def run(brain_path, radius=4, n_folds=150, resample=1, frac_sample=0.7):
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
 
-
     pmaps_4d = image.resample_img(
-        brain_image, mni_t1.affine, interpolation='nearest'
+        image.load_img(brain_path), mni_t1.affine, interpolation='nearest'
     )
 
     brain_regions_prob = []
