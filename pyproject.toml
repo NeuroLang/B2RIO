@@ -3,7 +3,7 @@ name = "B2RIO"
 version = "0.0.1"
 
 dependencies = [
-    "python_version >=3.8",
+    "python_version =3.8",
     "numpy",
     "scipy",
     "nibabel",
@@ -18,5 +18,5 @@ dependencies = [
     "rdflib>=6.0.0",
     "sqlalchemy",
     "pyparsing<3.0.5",
-    "neurolang @ git+https://github.com/gzanitti/NeuroLand.git@stable_ontologies",
+    "neurolang @ git+https://github.com/gzanitti/NeuroLang.git@stable_b2rio",
 ]

@@ -16,10 +16,10 @@ class Solver():
         self.mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
 
 
-    def run(self, regions_path, brain_path, results_path='./'):
+    def run(self, regions_ids, regions_name_path, brain_path, probabilistic_atlas=False, results_path='./'):
 
         lines = []
-        with open(regions_path) as f:
+        with open(regions_name_path) as f:
             lines = f.readlines()
 
         count = 0
@@ -43,8 +43,12 @@ class Solver():
             prob_region_data = pmaps_4d.dataobj[:,:,:,r-1]
             non_zero = np.nonzero(prob_region_data)
             for x, y, z in zip(*non_zero):
-                p = float(prob_region_data[x][y][z])
-                d = (p, x, y, z, r)
+                if probabilistic_atlas:
+                    p = float(prob_region_data[x][y][z])
+                    d = (p, x, y, z, r)
+                else:
+                    #p = int(prob_region_data[x][y][z])
+                    d = (x, y, z, r)
                 brain_regions_prob.append(d)
 
         ns_database_fn, ns_features_fn = datasets.utils._fetch_files(
@@ -136,8 +140,8 @@ class Solver():
 
         with nl.scope as e:
             e.ontology_terms[e.onto_name] = (
-            hasTopConcept[e.uri, e.cp] &
-            label[e.uri, e.onto_name]
+                hasTopConcept[e.uri, e.cp] &
+                label[e.uri, e.onto_name]
             )
 
             e.lower_terms[e.term] = (
@@ -155,10 +159,10 @@ class Solver():
         filtered = f_term.as_pandas_dataframe()
         filtered_terms = nl.add_tuple_set(filtered.values, name='filtered_terms')
 
-        for id_region in regions.r_number.values.astype(int):
+        for id_region in regions_ids:
             try:
                 with nl.scope as e:
-
+                    #if probabilistic_atlas:
                     (e.jbd @ e.p)[e.i, e.j, e.k, e.region, e.d] = (
                         e.activations[
                             e.d, ..., ..., ..., ..., 'MNI', ..., ..., ..., ...,
@@ -167,6 +171,16 @@ class Solver():
                         e.julich_brain_det[e.p, e.i, e.j, e.k, e.region] &
                         (e.region == id_region)
                     )
+                    '''else:
+                        e.jbd[e.i, e.j, e.k, e.region, e.d] = (
+                            e.activations[
+                                e.d, ..., ..., ..., ..., 'MNI', ..., ..., ..., ...,
+                                ..., ..., ..., e.i, e.j, e.k
+                            ] &
+                            e.julich_brain_det[e.i, e.j, e.k, e.region] &
+                            (e.region == id_region)
+                        )
+                    '''
 
                     e.act_regions[e.d, e.id] = e.jbd[..., ..., ..., e.id, e.d]
 
