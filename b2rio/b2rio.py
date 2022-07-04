@@ -163,4 +163,7 @@ def run(brain_path, radius=4, n_folds=150, resample=1, frac_sample=0.7):
     except Exception as e:
         print(f'ERROR! : {e}')
 
-    return res.as_pandas_dataframe()
+    df = res.as_pandas_dataframe()
+    df.to_csv('b2rio_results')
+
+    return 'b2rio_results.csv'
