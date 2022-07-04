@@ -19,11 +19,11 @@ setup(
                 'b2rio = b2rio.b2rio:run'
             ]
         },
-        classifiers =(
+        classifiers =[
             "Programming Language :: Python :: 3",
             "License :: OSI Approved :: MIT License",
             "Operating System :: OS Independent",
-        ),
+        ],
         install_requires = requirements,
         zip_safe = False
 )
