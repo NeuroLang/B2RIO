@@ -130,7 +130,7 @@ class Solver():
         try:
             with nl.scope as e:
                 e.jbd[e.x, e.y, e.z, e.d] = (
-                    e.activations[e.d, 'MNI', e.x, e.y, e.z] &
+                    e.activations[e.d, e.x, e.y, e.z] &
                     e.julich_brain_det[e.x1, e.y1, e.z1] &
                     (e.dist == e.EUCLIDEAN(e.x, e.y, e.z, e.x1, e.y1, e.z1)) &
                     (e.dist < radius)
