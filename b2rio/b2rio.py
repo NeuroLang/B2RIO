@@ -2,11 +2,38 @@ import pandas as pd
 import numpy as np
 import nibabel as nib
 from neurolang.frontend import NeurolangPDL
+import argparse
 
 from nilearn import datasets, image
 
 
-def run(brain_path, radius=4, n_folds=150, resample=1, frac_sample=0.7):
+def run():
+
+    print('Parsing args')
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--brain_path", nargs='?', type=str, default=None)
+    parser.add_argument("--n_folds", nargs='?', type=int, default=150)
+    parser.add_argument("--resample", nargs='?', type=int, default=1)
+    parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
+    parser.add_argument("--radius", nargs='?', type=int, default=4)
+    value = parser.parse_args()
+
+    # %%
+    if value.brain_path is None:
+        print('You need to provide a nifti image')
+        return
+
+    brain_path = value.brain_path
+    n_folds = value.n_folds
+    resample = value.resample
+    radius = value.radius
+    frac_sample = value.frac_sample
+
+    print('Starting analysis with the following parameters:')
+    print(f'  n_folds = {n_folds}')
+    print(f'  resample = {resample}')
+    print(f'  radius = {radius}')
+    print(f'  frac_sample = {frac_sample}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
