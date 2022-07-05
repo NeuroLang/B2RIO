@@ -16,11 +16,12 @@ def run():
     parser.add_argument("--resample", nargs='?', type=int, default=1)
     parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
     parser.add_argument("--radius", nargs='?', type=int, default=4)
+    parser.add_argument("--folder_results", nargs='?', type=str, default='./')
     value = parser.parse_args()
 
     # %%
     if value.brain_path is None:
-        print('You need to provide a nifti image')
+        print('You need to provide a nifti image using the --brain_path argument')
         return
 
     brain_path = value.brain_path
@@ -28,12 +29,15 @@ def run():
     resample = value.resample
     radius = value.radius
     frac_sample = value.frac_sample
+    folder_results = value.folder_results
+
 
     print('Starting analysis with the following parameters:')
     print(f'  n_folds = {n_folds}')
     print(f'  resample = {resample}')
     print(f'  radius = {radius}')
     print(f'  frac_sample = {frac_sample}')
+    print(f'  folder_results = {folder_results}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -191,6 +195,6 @@ def run():
         print(f'ERROR! : {e}')
 
     df = res.as_pandas_dataframe()
-    df.to_csv('b2rio_results')
+    df.to_csv(f'{folder_results}b2rio_results.csv')
 
-    return 'b2rio_results.csv'
+    return f'Results ready at {folder_results}b2rio_results.csv'
