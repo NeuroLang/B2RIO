@@ -16,7 +16,8 @@ setup(
         packages = find_packages(),
         entry_points ={
             'console_scripts': [
-                'b2rio = b2rio.b2rio:run'
+                'b2rio = b2rio.b2rio:run',
+                'b2rio_prob = b2rio.b2rio:run_probabilistic'
             ]
         },
         classifiers =[
