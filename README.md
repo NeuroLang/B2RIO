@@ -17,4 +17,5 @@ Apart from this, there are a number of other parameters that can be configured:
 - `--resample`: Resample of the provided image (default=1, no resample)
 - `--frac_sample`: Percentage of studies to use during sample (default=0.7)
 - `--radius`: When matching voxels between the provided image and neurosynth activations, this radius is used to limit the maximum distance between co-activated voxels. (default=4)
+- `--tfIdf`: Threshold to limit the number of studies based on the tfIdf provided by Neurosynth.
 - `--folder_results`: Folder to save results obtained (default='./')

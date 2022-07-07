@@ -16,6 +16,7 @@ def run():
     parser.add_argument("--resample", nargs='?', type=int, default=1)
     parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
     parser.add_argument("--radius", nargs='?', type=int, default=4)
+    parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--folder_results", nargs='?', type=str, default='./')
     value = parser.parse_args()
 
@@ -29,6 +30,7 @@ def run():
     resample = value.resample
     radius = value.radius
     frac_sample = value.frac_sample
+    tfIdf = value.tfIdf
     folder_results = value.folder_results
 
 
@@ -36,7 +38,9 @@ def run():
     print(f'  n_folds = {n_folds}')
     print(f'  resample = {resample}')
     print(f'  radius = {radius}')
+    print(f'  tfIdf = {tfIdf}')
     print(f'  frac_sample = {frac_sample}')
+
     print(f'  folder_results = {folder_results}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
@@ -87,7 +91,7 @@ def run():
                 ns_features,
                 var_name='term', id_vars='pmid', value_name='TfIdf'
         )
-        .query('TfIdf > 1e-3')[['pmid', 'term']]
+        .query(f'TfIdf > {tfIdf}')[['pmid', 'term']]
     )
     ns_docs = ns_features[['pmid']].drop_duplicates()
 
@@ -209,6 +213,7 @@ def run_probabilistic():
     parser.add_argument("--resample", nargs='?', type=int, default=1)
     parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
     parser.add_argument("--radius", nargs='?', type=int, default=4)
+    parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--folder_results", nargs='?', type=str, default='./')
     value = parser.parse_args()
 
@@ -222,6 +227,7 @@ def run_probabilistic():
     resample = value.resample
     radius = value.radius
     frac_sample = value.frac_sample
+    tfIdf = value.tfIdf
     folder_results = value.folder_results
 
 
@@ -230,6 +236,7 @@ def run_probabilistic():
     print(f'  resample = {resample}')
     print(f'  radius = {radius}')
     print(f'  frac_sample = {frac_sample}')
+    print(f'  tfIdf = {tfIdf}')
     print(f'  folder_results = {folder_results}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
@@ -278,7 +285,7 @@ def run_probabilistic():
                 ns_features,
                 var_name='term', id_vars='pmid', value_name='TfIdf'
         )
-        .query('TfIdf > 1e-3')[['pmid', 'term']]
+        .query(f'TfIdf > {tfIdf}')[['pmid', 'term']]
     )
     ns_docs = ns_features[['pmid']].drop_duplicates()
 
