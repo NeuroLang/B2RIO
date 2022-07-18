@@ -27,7 +27,7 @@ Apart from this, there are a number of other parameters that can be configured:
 #### Deterministic atlas
 
 Suppose we want to obtain the cognitive processes associated with the STS1 region of the left hemisphere of the Julich atlas.
-To do this, we must first obtain the corresponding image. This can be done in a simple way with the following command:
+To do this, we must first obtain the corresponding image. It can be obtained directly from the official Julich atlas repository, with the following command:
 
 `curl -O https://object.cscs.ch/v1/AUTH_227176556f3c4bb38df9feea4b91200c/hbp-d000001_jubrain-cytoatlas-Area-STS1_pub/5.3/Area-STS1_l_N10_nlin2ICBM152asym2009c_5.3_publicDOI_a8128c417aeeb34c81dabc225670faa5.nii.gz`
 
