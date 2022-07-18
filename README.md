@@ -14,8 +14,8 @@ E.g: `b2rio --brain_path nifti_image.nii.gz --output_file results`.
 Apart from this, there are a number of other parameters that can be configured:
 
 - `--n_folds`: Number of folds use to sample studies (default=150)
+- `--frac_sample`: Percentage of studies to use in folds (default=0.7)
 - `--resample`: Resample of the provided image (default=1)
-- `--frac_sample`: Percentage of studies to use during sample (default=0.7)
 - `--radius`: When matching voxels between the provided image and neurosynth activations, this radius is used to limit the maximum distance between co-activated voxels. (default=4)
 - `--tfIdf`: Threshold to limit the number of studies based on the tfIdf provided by Neurosynth.
 
