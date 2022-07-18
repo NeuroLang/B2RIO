@@ -58,15 +58,14 @@ def run():
     non_zero = np.nonzero(pmaps_4d.dataobj)
     if len(pmaps_4d.dataobj.shape) == 4:
         for x, y, z, r in zip(*non_zero):
-            p = int(brain_data[x][y][z][r])
-            regions2analyse.add(p)
-            d = (p, x, y, z)
+            label = int(brain_data[x][y][z][r])
+            regions2analyse.add(label)
+            d = (x, y, z, label)
             brain_regions_data.append(d)
     elif len(pmaps_4d.dataobj.shape) == 3:
         regions2analyse.add(1)
-        for x, y, z, r in zip(*non_zero):
-            regions2analyse.add(p)
-            d = (1, x, y, z)
+        for x, y, z in zip(*non_zero):
+            d = (x, y, z, 1)
             brain_regions_data.append(d)
     else:
         print('The nifti file must contain 3 or 4 dimensions')
@@ -148,7 +147,7 @@ def run():
 
     nl.add_tuple_set(
         brain_regions_data,
-        name='julich_brain_det'
+        name='brain_det'
     )
 
     with nl.scope as e:
@@ -182,7 +181,7 @@ def run():
             with nl.scope as e:
                 e.jbd[e.x, e.y, e.z, e.d] = (
                     e.activations[e.d, e.x, e.y, e.z] &
-                    e.julich_brain_det[e.region, e.x1, e.y1, e.z1] &
+                    e.brain_det[e.x1, e.y1, e.z1, e.region] &
                     (e.dist == e.EUCLIDEAN(e.x, e.y, e.z, e.x1, e.y1, e.z1)) &
                     (e.dist < radius) &
                     (e.region == region)
@@ -289,6 +288,26 @@ def run_probabilistic():
         d = (p, x, y, z)
         brain_regions_prob.append(d)
 
+    brain_regions_data = []
+    regions2analyse = set()
+    brain_data = pmaps_4d.dataobj
+    non_zero = np.nonzero(pmaps_4d.dataobj)
+    if len(pmaps_4d.dataobj.shape) == 4:
+        for x, y, z, r in zip(*non_zero):
+            p = int(brain_data[x][y][z][r])
+            regions2analyse.add(p)
+            d = (p, x, y, z, r)
+            brain_regions_data.append(d)
+    elif len(pmaps_4d.dataobj.shape) == 3:
+        regions2analyse.add(1)
+        for x, y, z in zip(*non_zero):
+            p = int(brain_data[x][y][z])
+            d = (p, x, y, z, 1)
+            brain_regions_data.append(d)
+    else:
+        print('The nifti file must contain 3 or 4 dimensions')
+        return
+
     ns_database_fn, ns_features_fn = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('neurosynth'),
         [
@@ -364,75 +383,96 @@ def run_probabilistic():
 
     nl.add_tuple_set(
         brain_regions_prob,
-        name='julich_brain_det'
+        name='brain_det'
     )
 
     with nl.scope as e:
-        e.ontology_terms[e.onto_name] = (
+        e.ontology_terms[e.onto_name, e.cp] = (
             hasTopConcept[e.uri, e.cp] &
             label[e.uri, e.onto_name]
         )
 
-        e.lower_terms[e.term] = (
-            e.ontology_terms[e.onto_term] &
+        e.lower_terms[e.term, e.cp] = (
+            e.ontology_terms[e.onto_term, e.cp] &
             (e.term == word_lower[e.onto_term])
         )
 
-        e.f_terms[e.d, e.t] = (
+        e.f_terms[e.d, e.t, e.cp] = (
             e.terms[e.d, e.t] &
-            e.lower_terms[e.t]
+            e.lower_terms[e.t, e.cp]
         )
 
-        f_term = nl.query((e.d, e.t), e.f_terms(e.d, e.t))
+        f_term = nl.query((e.d, e.t, e.cp), e.f_terms(e.d, e.t, e.cp))
 
-    filtered = f_term.as_pandas_dataframe()
+    filtered = f_term.as_pandas_dataframe()[['d', 't']]
     nl.add_tuple_set(filtered.values, name='filtered_terms')
 
-    try:
-        with nl.scope as e:
-            (e.jbd @ e.p)[e.x, e.y, e.z, e.d] = (
-                e.activations[e.d, e.x, e.y, e.z] &
-                e.julich_brain_det[e.p, e.x1, e.y1, e.z1] &
-                (e.dist == e.EUCLIDEAN(e.x, e.y, e.z, e.x1, e.y1, e.z1)) &
-                (e.dist < radius)
-            )
+    if len(pmaps_4d.dataobj.shape) == 4:
+        print('Starting analysis for regions: ', regions2analyse)
+    else:
+        print('Starting analysis')
 
-            e.img_studies[e.d] = e.jbd[..., ..., ..., e.d]
+    for region in regions2analyse:
 
-            e.img_left_studies[e.d] = e.docs[e.d] & ~(e.img_studies[e.d])
-
-            e.term_prob[e.t, e.fold, e.PROB[e.t, e.fold]] = (
-                (
-                    e.filtered_terms[e.d, e.t]
-                ) // (
-                    e.img_studies[e.d] &
-                    e.doc_folds[e.d, e.fold] &
-                    e.docs[e.d]
+        try:
+            with nl.scope as e:
+                (e.jbd @ e.p)[e.x, e.y, e.z, e.d] = (
+                    e.activations[e.d, e.x, e.y, e.z] &
+                    e.brain_det[e.p, e.x1, e.y1, e.z1, e.region] &
+                    (e.dist == e.EUCLIDEAN(e.x, e.y, e.z, e.x1, e.y1, e.z1)) &
+                    (e.dist < radius) &
+                    (e.region == region)
                 )
-            )
 
-            e.no_term_prob[e.t, e.fold, e.PROB[e.t, e.fold]] = (
-                (
-                    e.filtered_terms[e.d, e.t]
-                ) // (
-                    e.img_left_studies[e.d] &
-                    e.doc_folds[e.d, e.fold] &
-                    e.docs[e.d]
+                e.img_studies[e.d] = e.jbd[..., ..., ..., e.d]
+
+                e.img_left_studies[e.d] = e.docs[e.d] & ~(e.img_studies[e.d])
+
+                e.term_prob[e.t, e.fold, e.PROB[e.t, e.fold]] = (
+                    (
+                        e.filtered_terms[e.d, e.t]
+                    ) // (
+                        e.img_studies[e.d] &
+                        e.doc_folds[e.d, e.fold] &
+                        e.docs[e.d]
+                    )
                 )
-            )
 
-            e.ans[e.term, e.fold, e.bf] = (
-                e.term_prob[e.term, e.fold, e.p] &
-                e.no_term_prob[e.term, e.fold, e.pn] &
-                (e.bf == (e.p / e.pn))
-            )
+                e.no_term_prob[e.t, e.fold, e.PROB[e.t, e.fold]] = (
+                    (
+                        e.filtered_terms[e.d, e.t]
+                    ) // (
+                        e.img_left_studies[e.d] &
+                        e.doc_folds[e.d, e.fold] &
+                        e.docs[e.d]
+                    )
+                )
 
-            res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
-    except Exception as e:
-        print(f'ERROR! : {e}')
-        return
+                e.ans[e.term, e.fold, e.bf] = (
+                    e.term_prob[e.term, e.fold, e.p] &
+                    e.no_term_prob[e.term, e.fold, e.pn] &
+                    (e.bf == (e.p / e.pn))
+                )
 
-    df = res.as_pandas_dataframe()
-    df.to_csv(f'{output_file}csv')
+                res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
+        except Exception as e:
+            print(f'ERROR! : {e}')
+            return
+
+        df = res.as_pandas_dataframe()
+
+        df_cp = f_term.as_pandas_dataframe()[['cp', 't']]
+        df_cp = df_cp.drop_duplicates()
+
+        df = df.set_index('term').join(df_cp.set_index('t'))
+        df.reset_index(inplace=True)
+        df = df.rename(columns={'cp': 'topConcept'})
+
+        if len(regions2analyse) > 1:
+            df.to_csv(f'{output_file}_region{region}.csv')
+        else:
+            df.to_csv(f'{output_file}.csv')
+
+    print(f'Results ready!')
 
     return f'Results ready at {output_file}.csv'
