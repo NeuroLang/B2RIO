@@ -375,7 +375,7 @@ def run_probabilistic():
     )
 
     nl.add_tuple_set(
-        brain_regions_prob,
+        brain_regions_data,
         name='brain_det'
     )
 
