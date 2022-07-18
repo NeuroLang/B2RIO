@@ -53,14 +53,25 @@ def run():
     )
 
     brain_regions_data = []
-    regions2analyze = set()
+    regions2analyse = set()
     brain_data = pmaps_4d.dataobj
     non_zero = np.nonzero(pmaps_4d.dataobj)
-    for x, y, z, r in zip(*non_zero):
-        p = int(brain_data[x][y][z][r])
-        regions2analyze.add(p)
-        d = (p, x, y, z)
-        brain_regions_data.append(d)
+    if len(pmaps_4d.dataobj.shape) == 4:
+        for x, y, z, r in zip(*non_zero):
+            p = int(brain_data[x][y][z][r])
+            regions2analyse.add(p)
+            d = (p, x, y, z)
+            brain_regions_data.append(d)
+    elif len(pmaps_4d.dataobj.shape) == 3:
+        regions2analyse.add(1)
+        for x, y, z, r in zip(*non_zero):
+            regions2analyse.add(p)
+            d = (1, x, y, z)
+            brain_regions_data.append(d)
+    else:
+        print('The nifti file must contain 3 or 4 dimensions')
+        return
+
 
     ns_database_fn, ns_features_fn = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('neurosynth'),
@@ -161,7 +172,12 @@ def run():
     filtered = f_term.as_pandas_dataframe()[['d', 't']]
     nl.add_tuple_set(filtered.values, name='filtered_terms')
 
-    for region in regions2analyze:
+    if len(pmaps_4d.dataobj.shape) == 4:
+        print('Starting analysis for regions: ', regions2analyse)
+    else:
+        print('Starting analysis')
+
+    for region in regions2analyse:
         try:
             with nl.scope as e:
                 e.jbd[e.x, e.y, e.z, e.d] = (
@@ -213,9 +229,10 @@ def run():
         df_cp = df_cp.drop_duplicates()
 
         df = df.set_index('term').join(df_cp.set_index('t'))
+        df.reset_index(inplace=True)
         df = df.rename(columns={'cp': 'topConcept'})
 
-        if len(regions2analyze) > 1:
+        if len(regions2analyse) > 1:
             df.to_csv(f'{output_file}_region{region}.csv')
         else:
             df.to_csv(f'{output_file}.csv')
@@ -224,13 +241,13 @@ def run():
 
 def run_probabilistic():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--brain_path", nargs='1', type=str, default=None)
-    parser.add_argument("--n_folds", nargs='1', type=int, default=150)
-    parser.add_argument("--resample", nargs='1', type=int, default=1)
-    parser.add_argument("--frac_sample", nargs='1', type=int, default=0.7)
-    parser.add_argument("--radius", nargs='1', type=int, default=4)
-    parser.add_argument("--tfIdf", nargs='1', type=str, default='1e-3')
-    parser.add_argument("--output_file", nargs='1', type=str, default='./')
+    parser.add_argument("--brain_path", nargs=1, type=str, default=None)
+    parser.add_argument("--n_folds", nargs='?', type=int, default=150)
+    parser.add_argument("--resample", nargs='?', type=int, default=1)
+    parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
+    parser.add_argument("--radius", nargs='?', type=int, default=4)
+    parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
+    parser.add_argument("--output_file", nargs=1, type=str, default=None)
     value = parser.parse_args()
 
     # %%
