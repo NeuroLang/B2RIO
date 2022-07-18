@@ -33,7 +33,7 @@ Then, it only remains to run B2RIO with this file as a parameter and defining a 
 
 `b2rio --brain_path Area-STS1_l_N10_nlin2ICBM152asym2009c_5.3_publicDOI_a8128c417aeeb34c81dabc225670faa5.nii.gz --output_file STS1`
 
-When the process is complete, it will return a CSV file named `STS1.csv` with our results. The following are the first ten entries of the obtained file (remember that the number of folds used can be modified by means of the `--n_folds` parameter)
+When the process is complete, it will return a CSV file named `STS1.csv` with our results. The following are the first ten entries of the obtained file (out of a total of 18600, remember that the number of folds used can be modified with the `--n_folds` parameter)
 
 |    | term   |   fold |       bf | topConcept   |
 |---:|:-------|-------:|---------:|:-------------|
