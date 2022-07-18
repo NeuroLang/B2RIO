@@ -29,7 +29,7 @@ To do this, we must first obtain the corresponding image. This can be done in a 
 
 `curl -O https://object.cscs.ch/v1/AUTH_227176556f3c4bb38df9feea4b91200c/hbp-d000001_jubrain-cytoatlas-Area-STS1_pub/5.3/Area-STS1_l_N10_nlin2ICBM152asym2009c_5.3_publicDOI_a8128c417aeeb34c81dabc225670faa5.nii.gz`
 
-Then, it only remains to run B2RIO with this file as a parameter and defining a name for the output file.
+Then, it only remains to run B2RIO with the name of the nifti file as the `--brain_path` parameter and a name for the output file using the `--output_file` parameter.
 
 `b2rio --brain_path Area-STS1_l_N10_nlin2ICBM152asym2009c_5.3_publicDOI_a8128c417aeeb34c81dabc225670faa5.nii.gz --output_file STS1`
 

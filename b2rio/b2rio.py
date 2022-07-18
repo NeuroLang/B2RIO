@@ -258,13 +258,13 @@ def run_probabilistic():
         print('You need to provide a name for the uotput fiile using the --output_file argument')
         return
 
-    brain_path = value.brain_path
+    brain_path = value.brain_path[0]
     n_folds = value.n_folds
     resample = value.resample
     radius = value.radius
     frac_sample = value.frac_sample
     tfIdf = value.tfIdf
-    output_file = value.output_file
+    output_file = value.output_file[0]
 
 
     print('Starting analysis with the following parameters:')
@@ -281,12 +281,6 @@ def run_probabilistic():
     pmaps_4d = image.resample_img(
         image.load_img(brain_path), mni_t1.affine, interpolation='nearest'
     )
-
-    brain_regions_prob = []
-    non_zero = np.nonzero(pmaps_4d.dataobj)
-    for x, y, z, p in zip(*non_zero):
-        d = (p, x, y, z)
-        brain_regions_prob.append(d)
 
     brain_regions_data = []
     regions2analyse = set()
