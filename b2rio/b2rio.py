@@ -223,13 +223,13 @@ def run():
             return
 
         df = res.as_pandas_dataframe()
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
         df_cp = f_term.as_pandas_dataframe()[['cp', 't']]
         df_cp = df_cp.drop_duplicates()
 
         df = df.set_index('term').join(df_cp.set_index('t'))
         df.reset_index(inplace=True)
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         df = df.rename(columns={'cp': 'topConcept'})
 
         if len(regions2analyse) > 1:
@@ -461,13 +461,13 @@ def run_probabilistic():
             return
 
         df = res.as_pandas_dataframe()
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
 
         df_cp = f_term.as_pandas_dataframe()[['cp', 't']]
         df_cp = df_cp.drop_duplicates()
 
         df = df.set_index('term').join(df_cp.set_index('t'))
         df.reset_index(inplace=True, drop=True)
+        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
         df = df.rename(columns={'cp': 'topConcept'})
 
         if len(regions2analyse) > 1:
