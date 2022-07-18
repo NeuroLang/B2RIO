@@ -8,16 +8,14 @@ from nilearn import datasets, image
 
 
 def run():
-
-    print('Parsing args')
     parser = argparse.ArgumentParser()
-    parser.add_argument("--brain_path", nargs='?', type=str, default=None)
+    parser.add_argument("--brain_path", nargs=1, type=str, default=None)
     parser.add_argument("--n_folds", nargs='?', type=int, default=150)
     parser.add_argument("--resample", nargs='?', type=int, default=1)
     parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
     parser.add_argument("--radius", nargs='?', type=int, default=4)
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
-    parser.add_argument("--folder_results", nargs='?', type=str, default='./')
+    parser.add_argument("--output_file", nargs=1, type=str, default=None)
     value = parser.parse_args()
 
     # %%
@@ -25,23 +23,27 @@ def run():
         print('You need to provide a nifti image using the --brain_path argument')
         return
 
-    brain_path = value.brain_path
+    if value.output_file is None:
+        print('You need to provide a name for the output file using the --output_file argument')
+        return
+
+    brain_path = value.brain_path[0]
     n_folds = value.n_folds
     resample = value.resample
     radius = value.radius
     frac_sample = value.frac_sample
     tfIdf = value.tfIdf
-    folder_results = value.folder_results
+    output_file = value.output_file[0]
 
 
     print('Starting analysis with the following parameters:')
+    print(f'  brain_path = {brain_path}')
     print(f'  n_folds = {n_folds}')
     print(f'  resample = {resample}')
     print(f'  radius = {radius}')
     print(f'  tfIdf = {tfIdf}')
     print(f'  frac_sample = {frac_sample}')
-
-    print(f'  folder_results = {folder_results}')
+    print(f'  output_file = {output_file}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -50,13 +52,15 @@ def run():
         image.load_img(brain_path), mni_t1.affine, interpolation='nearest'
     )
 
-    brain_regions_prob = []
-    prob_region_data = pmaps_4d.dataobj
+    brain_regions_data = []
+    regions2analyze = set()
+    brain_data = pmaps_4d.dataobj
     non_zero = np.nonzero(pmaps_4d.dataobj)
     for x, y, z, r in zip(*non_zero):
-        p = prob_region_data[x][y][z][r]
+        p = int(brain_data[x][y][z][r])
+        regions2analyze.add(p)
         d = (p, x, y, z)
-        brain_regions_prob.append(d)
+        brain_regions_data.append(d)
 
     ns_database_fn, ns_features_fn = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('neurosynth'),
@@ -132,94 +136,110 @@ def run():
     )
 
     nl.add_tuple_set(
-        brain_regions_prob,
+        brain_regions_data,
         name='julich_brain_det'
     )
 
     with nl.scope as e:
-        e.ontology_terms[e.onto_name] = (
+        e.ontology_terms[e.onto_name, e.cp] = (
             hasTopConcept[e.uri, e.cp] &
             label[e.uri, e.onto_name]
         )
 
-        e.lower_terms[e.term] = (
-            e.ontology_terms[e.onto_term] &
+        e.lower_terms[e.term, e.cp] = (
+            e.ontology_terms[e.onto_term, e.cp] &
             (e.term == word_lower[e.onto_term])
         )
 
-        e.f_terms[e.d, e.t] = (
+        e.f_terms[e.d, e.t, e.cp] = (
             e.terms[e.d, e.t] &
-            e.lower_terms[e.t]
+            e.lower_terms[e.t, e.cp]
         )
 
-        f_term = nl.query((e.d, e.t), e.f_terms(e.d, e.t))
+        f_term = nl.query((e.d, e.t, e.cp), e.f_terms(e.d, e.t, e.cp))
 
-    filtered = f_term.as_pandas_dataframe()
+    filtered = f_term.as_pandas_dataframe()[['d', 't']]
     nl.add_tuple_set(filtered.values, name='filtered_terms')
 
-    try:
-        with nl.scope as e:
-            e.jbd[e.x, e.y, e.z, e.d] = (
-                e.activations[e.d, e.x, e.y, e.z] &
-                e.julich_brain_det[e.x1, e.y1, e.z1] &
-                (e.dist == e.EUCLIDEAN(e.x, e.y, e.z, e.x1, e.y1, e.z1)) &
-                (e.dist < radius)
-            )
-
-            e.img_studies[e.d] = e.jbd[..., ..., ..., e.d]
-
-            e.img_left_studies[e.d] = e.docs[e.d] & ~(e.img_studies[e.d])
-
-            e.term_prob[e.t, e.fold, e.PROB[e.t, e.fold]] = (
-                (
-                    e.filtered_terms[e.d, e.t]
-                ) // (
-                    e.img_studies[e.d] &
-                    e.doc_folds[e.d, e.fold] &
-                    e.docs[e.d]
+    for region in regions2analyze:
+        try:
+            with nl.scope as e:
+                e.jbd[e.x, e.y, e.z, e.d] = (
+                    e.activations[e.d, e.x, e.y, e.z] &
+                    e.julich_brain_det[e.region, e.x1, e.y1, e.z1] &
+                    (e.dist == e.EUCLIDEAN(e.x, e.y, e.z, e.x1, e.y1, e.z1)) &
+                    (e.dist < radius) &
+                    (e.region == region)
                 )
-            )
 
-            e.no_term_prob[e.t, e.fold, e.PROB[e.t, e.fold]] = (
-                (
-                    e.filtered_terms[e.d, e.t]
-                ) // (
-                    e.img_left_studies[e.d] &
-                    e.doc_folds[e.d, e.fold] &
-                    e.docs[e.d]
+                e.img_studies[e.d] = e.jbd[..., ..., ..., e.d]
+
+                e.img_left_studies[e.d] = e.docs[e.d] & ~(e.img_studies[e.d])
+
+                e.term_prob[e.t, e.fold, e.PROB[e.t, e.fold]] = (
+                    (
+                        e.filtered_terms[e.d, e.t]
+                    ) // (
+                        e.img_studies[e.d] &
+                        e.doc_folds[e.d, e.fold] &
+                        e.docs[e.d]
+                    )
                 )
-            )
 
-            e.ans[e.term, e.fold, e.bf] = (
-                e.term_prob[e.term, e.fold, e.p] &
-                e.no_term_prob[e.term, e.fold, e.pn] &
-                (e.bf == (e.p / e.pn))
-            )
+                e.no_term_prob[e.t, e.fold, e.PROB[e.t, e.fold]] = (
+                    (
+                        e.filtered_terms[e.d, e.t]
+                    ) // (
+                        e.img_left_studies[e.d] &
+                        e.doc_folds[e.d, e.fold] &
+                        e.docs[e.d]
+                    )
+                )
 
-            res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
-    except Exception as e:
-        print(f'ERROR! : {e}')
+                e.ans[e.term, e.fold, e.bf] = (
+                    e.term_prob[e.term, e.fold, e.p] &
+                    e.no_term_prob[e.term, e.fold, e.pn] &
+                    (e.bf == (e.p / e.pn))
+                )
 
-    df = res.as_pandas_dataframe()
-    df.to_csv(f'{folder_results}b2rio_results.csv')
+                res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
+        except Exception as e:
+            print(f'ERROR! : {e}')
+            return
 
-    return f'Results ready at {folder_results}b2rio_results.csv'
+        df = res.as_pandas_dataframe()
+
+        df_cp = f_term.as_pandas_dataframe()[['cp', 't']]
+        df_cp = df_cp.drop_duplicates()
+
+        df = df.set_index('term').join(df_cp.set_index('t'))
+        df = df.rename(columns={'cp': 'topConcept'})
+
+        if len(regions2analyze) > 1:
+            df.to_csv(f'{output_file}_region{region}.csv')
+        else:
+            df.to_csv(f'{output_file}.csv')
+
+        print(f'Results ready!')
 
 def run_probabilistic():
-    print('Parsing args')
     parser = argparse.ArgumentParser()
-    parser.add_argument("--brain_path", nargs='?', type=str, default=None)
-    parser.add_argument("--n_folds", nargs='?', type=int, default=150)
-    parser.add_argument("--resample", nargs='?', type=int, default=1)
-    parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
-    parser.add_argument("--radius", nargs='?', type=int, default=4)
-    parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
-    parser.add_argument("--folder_results", nargs='?', type=str, default='./')
+    parser.add_argument("--brain_path", nargs='1', type=str, default=None)
+    parser.add_argument("--n_folds", nargs='1', type=int, default=150)
+    parser.add_argument("--resample", nargs='1', type=int, default=1)
+    parser.add_argument("--frac_sample", nargs='1', type=int, default=0.7)
+    parser.add_argument("--radius", nargs='1', type=int, default=4)
+    parser.add_argument("--tfIdf", nargs='1', type=str, default='1e-3')
+    parser.add_argument("--output_file", nargs='1', type=str, default='./')
     value = parser.parse_args()
 
     # %%
     if value.brain_path is None:
         print('You need to provide a nifti image using the --brain_path argument')
+        return
+
+    if value.output_file is None:
+        print('You need to provide a name for the uotput fiile using the --output_file argument')
         return
 
     brain_path = value.brain_path
@@ -228,16 +248,16 @@ def run_probabilistic():
     radius = value.radius
     frac_sample = value.frac_sample
     tfIdf = value.tfIdf
-    folder_results = value.folder_results
+    output_file = value.output_file
 
 
     print('Starting analysis with the following parameters:')
     print(f'  n_folds = {n_folds}')
     print(f'  resample = {resample}')
     print(f'  radius = {radius}')
-    print(f'  frac_sample = {frac_sample}')
     print(f'  tfIdf = {tfIdf}')
-    print(f'  folder_results = {folder_results}')
+    print(f'  frac_sample = {frac_sample}')
+    print(f'  folder_results = {output_file}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -393,8 +413,9 @@ def run_probabilistic():
             res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
     except Exception as e:
         print(f'ERROR! : {e}')
+        return
 
     df = res.as_pandas_dataframe()
-    df.to_csv(f'{folder_results}b2rio_results.csv')
+    df.to_csv(f'{output_file}csv')
 
-    return f'Results ready at {folder_results}b2rio_results.csv'
+    return f'Results ready at {output_file}.csv'
