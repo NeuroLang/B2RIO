@@ -124,7 +124,6 @@ def run():
     nl = NeurolangPDL()
     nl.load_ontology(cogAt)
 
-    subclass_of = nl.new_symbol(name='neurolang:subClassOf')
     label = nl.new_symbol(name='neurolang:label')
     hasTopConcept = nl.new_symbol(name='neurolang:hasTopConcept')
 
@@ -172,7 +171,7 @@ def run():
     nl.add_tuple_set(filtered.values, name='filtered_terms')
 
     if len(pmaps_4d.dataobj.shape) == 4:
-        print('Starting analysis for regions: ', regions2analyse)
+        print('Starting analysis for regions:', regions2analyse)
     else:
         print('Starting analysis')
 
@@ -229,13 +228,13 @@ def run():
 
         df = df.set_index('term').join(df_cp.set_index('t'))
         df.reset_index(inplace=True)
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-        df = df.rename(columns={'cp': 'topConcept'})
+        df['cp'] = df.cp.fillna('')
+        df = df.rename(columns={'cp': 'topConcept', 'index': 'term'})
 
         if len(regions2analyse) > 1:
-            df.to_csv(f'{output_file}_region{region}.csv')
+            df.to_csv(f'{output_file}_region{region}.csv', index=False)
         else:
-            df.to_csv(f'{output_file}.csv')
+            df.to_csv(f'{output_file}.csv', index=False)
 
         print(f'Results ready!')
 
@@ -361,7 +360,6 @@ def run_probabilistic():
     nl = NeurolangPDL()
     nl.load_ontology(cogAt)
 
-    subclass_of = nl.new_symbol(name='neurolang:subClassOf')
     label = nl.new_symbol(name='neurolang:label')
     hasTopConcept = nl.new_symbol(name='neurolang:hasTopConcept')
 
@@ -409,7 +407,7 @@ def run_probabilistic():
     nl.add_tuple_set(filtered.values, name='filtered_terms')
 
     if len(pmaps_4d.dataobj.shape) == 4:
-        print('Starting analysis for regions: ', regions2analyse)
+        print('Starting analysis for regions:', regions2analyse)
     else:
         print('Starting analysis')
 
@@ -466,9 +464,9 @@ def run_probabilistic():
         df_cp = df_cp.drop_duplicates()
 
         df = df.set_index('term').join(df_cp.set_index('t'))
-        df.reset_index(inplace=True, drop=True)
-        df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
-        df = df.rename(columns={'cp': 'topConcept'})
+        df.reset_index(inplace=True)
+        df['cp'] = df.cp.fillna('')
+        df = df.rename(columns={'cp': 'topConcept', 'index': 'term'})
 
         if len(regions2analyse) > 1:
             df.to_csv(f'{output_file}_region{region}.csv')
