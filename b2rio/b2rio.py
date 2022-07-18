@@ -288,14 +288,15 @@ def run_probabilistic():
     non_zero = np.nonzero(pmaps_4d.dataobj)
     if len(pmaps_4d.dataobj.shape) == 4:
         for x, y, z, r in zip(*non_zero):
-            p = int(brain_data[x][y][z][r])
-            regions2analyse.add(p)
+            p = brain_data[x][y][z][r]
+            r = int(r)
+            regions2analyse.add(r)
             d = (p, x, y, z, r)
             brain_regions_data.append(d)
     elif len(pmaps_4d.dataobj.shape) == 3:
         regions2analyse.add(1)
         for x, y, z in zip(*non_zero):
-            p = int(brain_data[x][y][z])
+            p = brain_data[x][y][z]
             d = (p, x, y, z, 1)
             brain_regions_data.append(d)
     else:
@@ -463,9 +464,9 @@ def run_probabilistic():
         df = df.rename(columns={'cp': 'topConcept', 'index': 'term'})
 
         if len(regions2analyse) > 1:
-            df.to_csv(f'{output_file}_region{region}.csv')
+            df.to_csv(f'{output_file}_region{region}.csv', index=False)
         else:
-            df.to_csv(f'{output_file}.csv')
+            df.to_csv(f'{output_file}.csv', index=False)
 
     print(f'Results ready!')
 

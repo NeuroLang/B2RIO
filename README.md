@@ -24,6 +24,8 @@ Apart from this, there are a number of other parameters that can be configured:
 
 ### Analizing the Area STS1 (STS) of the Julich's atlas.
 
+#### Deterministic atlas
+
 Suppose we want to obtain the cognitive processes associated with the STS1 region of the left hemisphere of the Julich atlas.
 To do this, we must first obtain the corresponding image. This can be done in a simple way with the following command:
 
@@ -33,7 +35,7 @@ Then, it only remains to run B2RIO with the name of the nifti file as the `--bra
 
 `b2rio --brain_path Area-STS1_l_N10_nlin2ICBM152asym2009c_5.3_publicDOI_a8128c417aeeb34c81dabc225670faa5.nii.gz --output_file STS1`
 
-When the process is complete, it will return a CSV file named `STS1.csv` with our results. The following are the first ten entries of the obtained file (out of a total of 18600, remember that the number of folds used can be modified with the `--n_folds` parameter)
+When the process is complete, it will return a CSV file named `STS1.csv` with our results. The following are the first ten entries of the obtained file (out of a total of 18600, remember that the number of folds can be modified with the `--n_folds` parameter)
 
 |    | term   |   fold |       bf | topConcept   |
 |---:|:-------|-------:|---------:|:-------------|
@@ -62,3 +64,29 @@ Moreover, if we organize the results by their Bayes Factor in a decreasing order
 | 9265 | listening              |    115 | 2.50568 |              |
 | 8929 | language comprehension |     79 | 2.50209 | Language     |
 | 9167 | listening              |     17 | 2.49724 |              |
+
+
+#### Probabilistic atlas
+
+If our atlas has probabilities associated to its voxels and we want to perform the same analysis but taking into account this information, we only need to run B2RIO in its probabilistic version using the command `b2rio_prob`.
+
+`b2rio_prob --brain_path Area-STS1_l_N10_nlin2ICBM152asym2009c_5.3_publicDOI_a8128c417aeeb34c81dabc225670faa5.nii.gz --output_file STS1_prob`
+
+As an example, if we organize the results as before, these are the ten entries with the highest Bayes Factor:
+
+|       | term                   |   fold |      bf | topConcept   |
+|------:|:-----------------------|-------:|--------:|:-------------|
+|  8929 | language comprehension |     79 | 5.34525 | Language     |
+|  9256 | listening              |    106 | 5.26801 |              |
+|  9164 | listening              |     14 | 5.25006 |              |
+|  8868 | language comprehension |     18 | 5.1464  | Language     |
+|  8978 | language comprehension |    128 | 5.07841 | Language     |
+| 15374 | sentence comprehension |     74 | 5.07644 | Language     |
+|  8901 | language comprehension |     51 | 4.9826  | Language     |
+|  8984 | language comprehension |    134 | 4.98044 | Language     |
+|  9192 | listening              |     42 | 4.96508 |              |
+|  9265 | listening              |    115 | 4.95206 |              |
+
+## Issues/Improvements
+
+If you find a bug or think that B2RIO can be improved in any way, feel free to open an Issue or send a PR

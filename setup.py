@@ -11,7 +11,7 @@ setup(
         author ='Gaston E. Zanitti',
         author_email ='gzanitti@gmail.com',
         url ='https://github.com/gzanitti/B2RIO',
-        description ='Brain to Reverse Inference Ontology',
+        description ='Brain t(w)o Reverse Inference Ontology',
         license ='MIT',
         packages = find_packages(),
         entry_points ={
