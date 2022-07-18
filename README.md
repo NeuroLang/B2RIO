@@ -47,3 +47,18 @@ When the process is complete, it will return a CSV file named `STS1.csv` with ou
 |  7 | action |      7 | 0.82419  | Action       |
 |  8 | action |      8 | 0.852273 | Action       |
 |  9 | action |      9 | 0.885683 | Action       |
+
+Moreover, if we organize the results by their Bayes Factor in a decreasing order, we can see that the most relevant results are related to cognitive processes associated with listening/audition (confirming in some way the knowledge available in the literature).
+
+|      | term                   |   fold |      bf | topConcept   |
+|-----:|:-----------------------|-------:|--------:|:-------------|
+| 9256 | listening              |    106 | 2.5791  |              |
+| 9192 | listening              |     42 | 2.56588 |              |
+| 9164 | listening              |     14 | 2.53278 |              |
+| 9269 | listening              |    119 | 2.52988 |              |
+| 9178 | listening              |     28 | 2.5297  |              |
+| 8984 | language comprehension |    134 | 2.51597 | Language     |
+| 9280 | listening              |    130 | 2.51489 |              |
+| 9265 | listening              |    115 | 2.50568 |              |
+| 8929 | language comprehension |     79 | 2.50209 | Language     |
+| 9167 | listening              |     17 | 2.49724 |              |
