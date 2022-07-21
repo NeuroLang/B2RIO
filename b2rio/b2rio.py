@@ -233,8 +233,14 @@ def run():
 
         if len(regions2analyse) > 1:
             df.to_csv(f'{output_file}_region{region}.csv', index=False)
+            df = df.groupby(['term','topConcept']).bf.agg(['mean','std']).sort_values('mean', ascending=False)
+            df.reset_index(inplace=True)
+            df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
         else:
             df.to_csv(f'{output_file}.csv', index=False)
+            df = df.groupby(['term','topConcept']).bf.agg(['mean','std']).sort_values('mean', ascending=False)
+            df.reset_index(inplace=True)
+            df.to_csv(f'{output_file}_summary.csv', index=False)
 
         print(f'Results ready!')
 
@@ -465,8 +471,14 @@ def run_probabilistic():
 
         if len(regions2analyse) > 1:
             df.to_csv(f'{output_file}_region{region}.csv', index=False)
+            df = df.groupby(['term','topConcept']).bf.agg(['mean','std']).sort_values('mean', ascending=False)
+            df.reset_index(inplace=True)
+            df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
         else:
             df.to_csv(f'{output_file}.csv', index=False)
+            df = df.groupby(['term','topConcept']).bf.agg(['mean','std']).sort_values('mean', ascending=False)
+            df.reset_index(inplace=True)
+            df.to_csv(f'{output_file}_summary.csv', index=False)
 
     print(f'Results ready!')
 
