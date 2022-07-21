@@ -77,12 +77,12 @@ def run():
         [
             (
                 'database.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
+                'https://github.com/neurosynth/neurosynth-data/raw/e8f27c4a9a44dbfbc0750366166ad2ba34ac72d6/current_data.tar.gz',
                 {'uncompress': True}
             ),
             (
                 'features.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
+                'https://github.com/neurosynth/neurosynth-data/raw/e8f27c4a9a44dbfbc0750366166ad2ba34ac72d6/current_data.tar.gz',
                 {'uncompress': True}
             ),
         ]
@@ -308,12 +308,12 @@ def run_probabilistic():
         [
             (
                 'database.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
+                'https://github.com/neurosynth/neurosynth-data/raw/e8f27c4a9a44dbfbc0750366166ad2ba34ac72d6/current_data.tar.gz',
                 {'uncompress': True}
             ),
             (
                 'features.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
+                'https://github.com/neurosynth/neurosynth-data/raw/e8f27c4a9a44dbfbc0750366166ad2ba34ac72d6/current_data.tar.gz',
                 {'uncompress': True}
             ),
         ]
