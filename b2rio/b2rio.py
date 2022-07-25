@@ -20,6 +20,7 @@ def run():
     parser.add_argument("--radius", nargs='?', type=int, default=4)
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
+    parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
     value = parser.parse_args()
 
     # %%
@@ -38,6 +39,7 @@ def run():
     frac_sample = value.frac_sample
     tfIdf = value.tfIdf
     output_file = value.output_file[0]
+    output_summary = value.output_summary
 
 
     print('Starting analysis with the following parameters:')
@@ -48,6 +50,7 @@ def run():
     print(f'  tfIdf = {tfIdf}')
     print(f'  frac_sample = {frac_sample}')
     print(f'  output_file = {output_file}')
+    print(f'  output_summary = {output_summary}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -91,15 +94,15 @@ def run():
     ns_data['k'] = ijk_positions[:, 2]
 
     ns_data['id'] = ns_data.id.astype(int)
-    ns_data[['id', 'i', 'j', 'k']].values
+    ns_data = ns_data[['id', 'i', 'j', 'k']].values
 
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
         [
             (
                 'cogat.xml',
-                'http://data.bioontology.org/ontologies/COGAT/download?'
-                'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=rdf',
+                'https://data.bioontology.org/ontologies/COGAT/submissions/7/download?'
+                'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb',
                 {'move': 'cogat.xml'}
             )
         ]
@@ -115,8 +118,9 @@ def run():
     def word_lower(name: str) -> str:
         return name.lower()
 
+    sample_size = len(ns_docs.sample(frac=frac_sample))
     ns_doc_folds = pd.concat(
-        ns_docs.sample(frac=frac_sample, random_state=i).assign(fold=[i] * (int((len(ns_docs)* frac_sample))+1))
+        ns_docs.sample(frac=frac_sample, random_state=i).assign(fold=[i] * sample_size)
         for i in range(n_folds)
     )
     doc_folds = nl.add_tuple_set(ns_doc_folds, name='doc_folds')
@@ -216,8 +220,16 @@ def run():
 
         if len(regions2analyse) > 1:
             df.to_csv(f'{output_file}_region{region}.csv', index=False)
+            if output_summary:
+                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                df.reset_index(inplace=True)
+                df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
         else:
             df.to_csv(f'{output_file}.csv', index=False)
+            if output_summary:
+                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                df.reset_index(inplace=True)
+                df.to_csv(f'{output_file}_summary.csv', index=False)
 
         print(f'Results ready!')
 
@@ -230,6 +242,8 @@ def run_probabilistic():
     parser.add_argument("--radius", nargs='?', type=int, default=4)
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
+    parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
+
     value = parser.parse_args()
 
     # %%
@@ -248,6 +262,7 @@ def run_probabilistic():
     frac_sample = value.frac_sample
     tfIdf = value.tfIdf
     output_file = value.output_file[0]
+    output_summary = value.output_summary
 
 
     print('Starting analysis with the following parameters:')
@@ -257,6 +272,7 @@ def run_probabilistic():
     print(f'  tfIdf = {tfIdf}')
     print(f'  frac_sample = {frac_sample}')
     print(f'  folder_results = {output_file}')
+    print(f'  output_summary = {output_summary}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -301,7 +317,8 @@ def run_probabilistic():
     ns_data['k'] = ijk_positions[:, 2]
 
     ns_data['id'] = ns_data.id.astype(int)
-    ns_data[['id', 'i', 'j', 'k']].values
+    ns_data = ns_data[['id', 'i', 'j', 'k']].values
+
 
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
@@ -309,7 +326,8 @@ def run_probabilistic():
             (
                 'cogat.xml',
                 'https://data.bioontology.org/ontologies/COGAT/submissions/7/download?'
-                'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=rdf',
+                'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb',
+
                 {'move': 'cogat.xml'}
             )
         ]
@@ -325,8 +343,9 @@ def run_probabilistic():
     def word_lower(name: str) -> str:
         return name.lower()
 
+    sample_size = len(ns_docs.sample(frac=frac_sample))
     ns_doc_folds = pd.concat(
-        ns_docs.sample(frac=frac_sample, random_state=i).assign(fold=[i] * (int((len(ns_docs)* frac_sample))+1))
+        ns_docs.sample(frac=frac_sample, random_state=i).assign(fold=[i] * sample_size)
         for i in range(n_folds)
     )
     doc_folds = nl.add_tuple_set(ns_doc_folds, name='doc_folds')
@@ -427,8 +446,16 @@ def run_probabilistic():
 
         if len(regions2analyse) > 1:
             df.to_csv(f'{output_file}_region{region}.csv', index=False)
+            if output_summary:
+                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                df.reset_index(inplace=True)
+                df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
         else:
             df.to_csv(f'{output_file}.csv', index=False)
+            if output_summary:
+                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                df.reset_index(inplace=True)
+                df.to_csv(f'{output_file}_summary.csv', index=False)
 
     print(f'Results ready!')
 
