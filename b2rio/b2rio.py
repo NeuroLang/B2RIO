@@ -308,7 +308,7 @@ def run_probabilistic():
         [
             (
                 'cogat.xml',
-                'http://data.bioontology.org/ontologies/COGAT/download?'
+                'https://data.bioontology.org/ontologies/COGAT/submissions/7/download?'
                 'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=rdf',
                 {'move': 'cogat.xml'}
             )
