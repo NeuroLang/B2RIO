@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 import nibabel as nib
 from neurolang.frontend import NeurolangPDL
+from neurolang.frontend.neurosynth_utils import (
+    get_ns_term_study_associations,
+    get_ns_mni_peaks_reported
+)
 import argparse
 
 from nilearn import datasets, image
@@ -16,6 +20,7 @@ def run():
     parser.add_argument("--radius", nargs='?', type=int, default=4)
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
+    parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
     value = parser.parse_args()
 
     # %%
@@ -34,6 +39,7 @@ def run():
     frac_sample = value.frac_sample
     tfIdf = value.tfIdf
     output_file = value.output_file[0]
+    output_summary = value.output_summary
 
 
     print('Starting analysis with the following parameters:')
@@ -44,6 +50,7 @@ def run():
     print(f'  tfIdf = {tfIdf}')
     print(f'  frac_sample = {frac_sample}')
     print(f'  output_file = {output_file}')
+    print(f'  output_summary = {output_summary}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -72,42 +79,22 @@ def run():
         return
 
 
-    ns_database_fn, ns_features_fn = datasets.utils._fetch_files(
-        datasets.utils._get_dataset_dir('neurosynth'),
-        [
-            (
-                'database.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            ),
-            (
-                'features.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            ),
-        ]
-    )
+    ns_terms = get_ns_term_study_associations('./')[['id', 'term']]
+    ns_data = get_ns_mni_peaks_reported('./')
+    ns_docs = ns_data[['id']].drop_duplicates()
 
-    ns_database = pd.read_csv(ns_database_fn, sep=f'\t')
     ijk_positions = (
         nib.affines.apply_affine(
             np.linalg.inv(mni_t1.affine),
-            ns_database[['x', 'y', 'z']]
+            ns_data[['x', 'y', 'z']]
         ).astype(int)
     )
-    ns_database['i'] = ijk_positions[:, 0]
-    ns_database['j'] = ijk_positions[:, 1]
-    ns_database['k'] = ijk_positions[:, 2]
+    ns_data['i'] = ijk_positions[:, 0]
+    ns_data['j'] = ijk_positions[:, 1]
+    ns_data['k'] = ijk_positions[:, 2]
 
-    ns_features = pd.read_csv(ns_features_fn, sep=f'\t')
-    ns_terms = (
-        pd.melt(
-                ns_features,
-                var_name='term', id_vars='pmid', value_name='TfIdf'
-        )
-        .query(f'TfIdf > {tfIdf}')[['pmid', 'term']]
-    )
-    ns_docs = ns_features[['pmid']].drop_duplicates()
+    ns_data['id'] = ns_data.id.astype(int)
+    ns_data[['id', 'i', 'j', 'k']].values
 
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
@@ -137,7 +124,6 @@ def run():
     )
     doc_folds = nl.add_tuple_set(ns_doc_folds, name='doc_folds')
 
-    ns_data = ns_database[ns_database.space == 'MNI'][['id', 'i', 'j', 'k']].values
     activations = nl.add_tuple_set(ns_data, name='activations')
     terms = nl.add_tuple_set(ns_terms.values, name='terms')
     docs = nl.add_uniform_probabilistic_choice_over_set(
@@ -233,14 +219,16 @@ def run():
 
         if len(regions2analyse) > 1:
             df.to_csv(f'{output_file}_region{region}.csv', index=False)
-            df = df.groupby(['term','topConcept']).bf.agg(['mean','std']).sort_values('mean', ascending=False)
-            df.reset_index(inplace=True)
-            df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
+            if output_summary:
+                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                df.reset_index(inplace=True)
+                df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
         else:
             df.to_csv(f'{output_file}.csv', index=False)
-            df = df.groupby(['term','topConcept']).bf.agg(['mean','std']).sort_values('mean', ascending=False)
-            df.reset_index(inplace=True)
-            df.to_csv(f'{output_file}_summary.csv', index=False)
+            if output_summary:
+                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                df.reset_index(inplace=True)
+                df.to_csv(f'{output_file}_summary.csv', index=False)
 
         print(f'Results ready!')
 
@@ -253,6 +241,8 @@ def run_probabilistic():
     parser.add_argument("--radius", nargs='?', type=int, default=4)
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
+    parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
+
     value = parser.parse_args()
 
     # %%
@@ -271,6 +261,7 @@ def run_probabilistic():
     frac_sample = value.frac_sample
     tfIdf = value.tfIdf
     output_file = value.output_file[0]
+    output_summary = value.output_summary
 
 
     print('Starting analysis with the following parameters:')
@@ -280,6 +271,7 @@ def run_probabilistic():
     print(f'  tfIdf = {tfIdf}')
     print(f'  frac_sample = {frac_sample}')
     print(f'  folder_results = {output_file}')
+    print(f'  output_summary = {output_summary}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -309,50 +301,30 @@ def run_probabilistic():
         print('The nifti file must contain 3 or 4 dimensions')
         return
 
-    ns_database_fn, ns_features_fn = datasets.utils._fetch_files(
-        datasets.utils._get_dataset_dir('neurosynth'),
-        [
-            (
-                'database.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            ),
-            (
-                'features.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            ),
-        ]
-    )
+    ns_terms = get_ns_term_study_associations('./')[['id', 'term']]
+    ns_data = get_ns_mni_peaks_reported('./')
+    ns_docs = ns_data[['id']].drop_duplicates()
 
-    ns_database = pd.read_csv(ns_database_fn, sep=f'\t')
     ijk_positions = (
         nib.affines.apply_affine(
             np.linalg.inv(mni_t1.affine),
-            ns_database[['x', 'y', 'z']]
+            ns_data[['x', 'y', 'z']]
         ).astype(int)
     )
-    ns_database['i'] = ijk_positions[:, 0]
-    ns_database['j'] = ijk_positions[:, 1]
-    ns_database['k'] = ijk_positions[:, 2]
+    ns_data['i'] = ijk_positions[:, 0]
+    ns_data['j'] = ijk_positions[:, 1]
+    ns_data['k'] = ijk_positions[:, 2]
 
-    ns_features = pd.read_csv(ns_features_fn, sep=f'\t')
-    ns_terms = (
-        pd.melt(
-                ns_features,
-                var_name='term', id_vars='pmid', value_name='TfIdf'
-        )
-        .query(f'TfIdf > {tfIdf}')[['pmid', 'term']]
-    )
-    ns_docs = ns_features[['pmid']].drop_duplicates()
+    ns_data['id'] = ns_data.id.astype(int)
+    ns_data[['id', 'i', 'j', 'k']].values
 
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
         [
             (
                 'cogat.xml',
-                'http://data.bioontology.org/ontologies/COGAT/download?'
-                'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=rdf',
+                'https://data.bioontology.org/ontologies/COGAT/submissions/7/download?'
+                'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb',
                 {'move': 'cogat.xml'}
             )
         ]
@@ -374,7 +346,6 @@ def run_probabilistic():
     )
     doc_folds = nl.add_tuple_set(ns_doc_folds, name='doc_folds')
 
-    ns_data = ns_database[ns_database.space == 'MNI'][['id', 'i', 'j', 'k']].values
     activations = nl.add_tuple_set(ns_data, name='activations')
     terms = nl.add_tuple_set(ns_terms.values, name='terms')
     docs = nl.add_uniform_probabilistic_choice_over_set(
@@ -471,14 +442,16 @@ def run_probabilistic():
 
         if len(regions2analyse) > 1:
             df.to_csv(f'{output_file}_region{region}.csv', index=False)
-            df = df.groupby(['term','topConcept']).bf.agg(['mean','std']).sort_values('mean', ascending=False)
-            df.reset_index(inplace=True)
-            df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
+            if output_summary:
+                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                df.reset_index(inplace=True)
+                df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
         else:
             df.to_csv(f'{output_file}.csv', index=False)
-            df = df.groupby(['term','topConcept']).bf.agg(['mean','std']).sort_values('mean', ascending=False)
-            df.reset_index(inplace=True)
-            df.to_csv(f'{output_file}_summary.csv', index=False)
+            if output_summary:
+                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                df.reset_index(inplace=True)
+                df.to_csv(f'{output_file}_summary.csv', index=False)
 
     print(f'Results ready!')
 
