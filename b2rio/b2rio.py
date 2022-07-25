@@ -2,6 +2,10 @@ import pandas as pd
 import numpy as np
 import nibabel as nib
 from neurolang.frontend import NeurolangPDL
+from neurolang.frontend.neurosynth_utils import (
+    get_ns_term_study_associations,
+    get_ns_mni_peaks_reported
+)
 import argparse
 
 from nilearn import datasets, image
@@ -72,42 +76,22 @@ def run():
         return
 
 
-    ns_database_fn, ns_features_fn = datasets.utils._fetch_files(
-        datasets.utils._get_dataset_dir('neurosynth'),
-        [
-            (
-                'database.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            ),
-            (
-                'features.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            ),
-        ]
-    )
+    ns_terms = get_ns_term_study_associations('./')[['id', 'term']]
+    ns_data = get_ns_mni_peaks_reported('./')
+    ns_docs = ns_data[['id']].drop_duplicates()
 
-    ns_database = pd.read_csv(ns_database_fn, sep=f'\t')
     ijk_positions = (
         nib.affines.apply_affine(
             np.linalg.inv(mni_t1.affine),
-            ns_database[['x', 'y', 'z']]
+            ns_data[['x', 'y', 'z']]
         ).astype(int)
     )
-    ns_database['i'] = ijk_positions[:, 0]
-    ns_database['j'] = ijk_positions[:, 1]
-    ns_database['k'] = ijk_positions[:, 2]
+    ns_data['i'] = ijk_positions[:, 0]
+    ns_data['j'] = ijk_positions[:, 1]
+    ns_data['k'] = ijk_positions[:, 2]
 
-    ns_features = pd.read_csv(ns_features_fn, sep=f'\t')
-    ns_terms = (
-        pd.melt(
-                ns_features,
-                var_name='term', id_vars='pmid', value_name='TfIdf'
-        )
-        .query(f'TfIdf > {tfIdf}')[['pmid', 'term']]
-    )
-    ns_docs = ns_features[['pmid']].drop_duplicates()
+    ns_data['id'] = ns_data.id.astype(int)
+    ns_data[['id', 'i', 'j', 'k']].values
 
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
@@ -137,7 +121,6 @@ def run():
     )
     doc_folds = nl.add_tuple_set(ns_doc_folds, name='doc_folds')
 
-    ns_data = ns_database[ns_database.space == 'MNI'][['id', 'i', 'j', 'k']].values
     activations = nl.add_tuple_set(ns_data, name='activations')
     terms = nl.add_tuple_set(ns_terms.values, name='terms')
     docs = nl.add_uniform_probabilistic_choice_over_set(
@@ -303,42 +286,22 @@ def run_probabilistic():
         print('The nifti file must contain 3 or 4 dimensions')
         return
 
-    ns_database_fn, ns_features_fn = datasets.utils._fetch_files(
-        datasets.utils._get_dataset_dir('neurosynth'),
-        [
-            (
-                'database.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            ),
-            (
-                'features.txt',
-                'https://github.com/neurosynth/neurosynth-data/raw/master/current_data.tar.gz',
-                {'uncompress': True}
-            ),
-        ]
-    )
+    ns_terms = get_ns_term_study_associations('./')[['id', 'term']]
+    ns_data = get_ns_mni_peaks_reported('./')
+    ns_docs = ns_data[['id']].drop_duplicates()
 
-    ns_database = pd.read_csv(ns_database_fn, sep=f'\t')
     ijk_positions = (
         nib.affines.apply_affine(
             np.linalg.inv(mni_t1.affine),
-            ns_database[['x', 'y', 'z']]
+            ns_data[['x', 'y', 'z']]
         ).astype(int)
     )
-    ns_database['i'] = ijk_positions[:, 0]
-    ns_database['j'] = ijk_positions[:, 1]
-    ns_database['k'] = ijk_positions[:, 2]
+    ns_data['i'] = ijk_positions[:, 0]
+    ns_data['j'] = ijk_positions[:, 1]
+    ns_data['k'] = ijk_positions[:, 2]
 
-    ns_features = pd.read_csv(ns_features_fn, sep=f'\t')
-    ns_terms = (
-        pd.melt(
-                ns_features,
-                var_name='term', id_vars='pmid', value_name='TfIdf'
-        )
-        .query(f'TfIdf > {tfIdf}')[['pmid', 'term']]
-    )
-    ns_docs = ns_features[['pmid']].drop_duplicates()
+    ns_data['id'] = ns_data.id.astype(int)
+    ns_data[['id', 'i', 'j', 'k']].values
 
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
@@ -368,7 +331,6 @@ def run_probabilistic():
     )
     doc_folds = nl.add_tuple_set(ns_doc_folds, name='doc_folds')
 
-    ns_data = ns_database[ns_database.space == 'MNI'][['id', 'i', 'j', 'k']].values
     activations = nl.add_tuple_set(ns_data, name='activations')
     terms = nl.add_tuple_set(ns_terms.values, name='terms')
     docs = nl.add_uniform_probabilistic_choice_over_set(
