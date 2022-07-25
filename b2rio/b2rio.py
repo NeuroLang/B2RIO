@@ -94,7 +94,7 @@ def run():
     ns_data['k'] = ijk_positions[:, 2]
 
     ns_data['id'] = ns_data.id.astype(int)
-    ns_data[['id', 'i', 'j', 'k']].values
+    ns_data = ns_data[['id', 'i', 'j', 'k']].values
 
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
@@ -118,8 +118,9 @@ def run():
     def word_lower(name: str) -> str:
         return name.lower()
 
+    sample_size = len(ns_docs.sample(frac=frac_sample))
     ns_doc_folds = pd.concat(
-        ns_docs.sample(frac=frac_sample, random_state=i).assign(fold=[i] * (int((len(ns_docs)* frac_sample))+1))
+        ns_docs.sample(frac=frac_sample, random_state=i).assign(fold=[i] * sample_size)
         for i in range(n_folds)
     )
     doc_folds = nl.add_tuple_set(ns_doc_folds, name='doc_folds')
@@ -316,7 +317,7 @@ def run_probabilistic():
     ns_data['k'] = ijk_positions[:, 2]
 
     ns_data['id'] = ns_data.id.astype(int)
-    ns_data[['id', 'i', 'j', 'k']].values
+    ns_data = ns_data[['id', 'i', 'j', 'k']].values
 
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
@@ -340,8 +341,9 @@ def run_probabilistic():
     def word_lower(name: str) -> str:
         return name.lower()
 
+    sample_size = len(ns_docs.sample(frac=frac_sample))
     ns_doc_folds = pd.concat(
-        ns_docs.sample(frac=frac_sample, random_state=i).assign(fold=[i] * (int((len(ns_docs)* frac_sample))+1))
+        ns_docs.sample(frac=frac_sample, random_state=i).assign(fold=[i] * sample_size)
         for i in range(n_folds)
     )
     doc_folds = nl.add_tuple_set(ns_doc_folds, name='doc_folds')
