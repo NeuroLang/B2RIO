@@ -101,8 +101,8 @@ def run():
         [
             (
                 'cogat.xml',
-                'http://data.bioontology.org/ontologies/COGAT/download?'
-                'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb&download_format=rdf',
+                'https://data.bioontology.org/ontologies/COGAT/submissions/7/download?'
+                'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb',
                 {'move': 'cogat.xml'}
             )
         ]
@@ -319,6 +319,7 @@ def run_probabilistic():
     ns_data['id'] = ns_data.id.astype(int)
     ns_data = ns_data[['id', 'i', 'j', 'k']].values
 
+
     cogAt = datasets.utils._fetch_files(
         datasets.utils._get_dataset_dir('CogAt'),
         [
@@ -326,6 +327,7 @@ def run_probabilistic():
                 'cogat.xml',
                 'https://data.bioontology.org/ontologies/COGAT/submissions/7/download?'
                 'apikey=8b5b7825-538d-40e0-9e9e-5ab9274a9aeb',
+
                 {'move': 'cogat.xml'}
             )
         ]
