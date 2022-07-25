@@ -18,6 +18,7 @@ Apart from this, there are a number of other parameters that can be configured:
 - `--resample`: Resample of the provided image (default=1)
 - `--radius`: When matching voxels between the provided image and neurosynth activations, this radius is used to limit the maximum distance between co-activated voxels. (default=4)
 - `--tfIdf`: Threshold to limit the number of studies based on the tfIdf provided by Neurosynth.
+- `--output_summary`: If true, an `{output_file}_summary.csv` file will be calculated containing the mean, std and skew between the folds of each term.
 
 
 ## Examples
