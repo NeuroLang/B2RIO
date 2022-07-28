@@ -10,6 +10,9 @@ import argparse
 
 from nilearn import datasets, image
 
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
 
 def run():
     parser = argparse.ArgumentParser()
@@ -79,7 +82,7 @@ def run():
         return
 
 
-    ns_terms = get_ns_term_study_associations('./')[['id', 'term']]
+    ns_terms = get_ns_term_study_associations('./', tfidf_threshold=tfIdf)[['id', 'term']]
     ns_data = get_ns_mni_peaks_reported('./')
     ns_docs = ns_data[['id']].drop_duplicates()
 
@@ -302,7 +305,7 @@ def run_probabilistic():
         print('The nifti file must contain 3 or 4 dimensions')
         return
 
-    ns_terms = get_ns_term_study_associations('./')[['id', 'term']]
+    ns_terms = get_ns_term_study_associations('./', tfidf_threshold=tfIdf)[['id', 'term']]
     ns_data = get_ns_mni_peaks_reported('./')
     ns_docs = ns_data[['id']].drop_duplicates()
 
