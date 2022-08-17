@@ -1,16 +1,18 @@
-import pandas as pd
-import numpy as np
 import nibabel as nib
+import numpy as np
+import pandas as pd
+from neurolang import config
+
+config.disable_expression_type_printing()
+config.disable_probabilistic_solver_check_unate()
+import argparse
+import warnings
+
 from neurolang.frontend import NeurolangPDL
 from neurolang.frontend.neurosynth_utils import (
-    get_ns_term_study_associations,
-    get_ns_mni_peaks_reported
-)
-import argparse
-
+    get_ns_mni_peaks_reported, get_ns_term_study_associations)
 from nilearn import datasets, image
 
-import warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
 
