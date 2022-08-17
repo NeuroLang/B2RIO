@@ -26,6 +26,7 @@ def run():
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
     parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
+    parser.add_argument("--debug_file", nargs=1, type=str, default=None)
     value = parser.parse_args()
 
     # %%
@@ -45,6 +46,8 @@ def run():
     tfIdf = value.tfIdf
     output_file = value.output_file[0]
     output_summary = value.output_summary
+    debug_file = value.debug_file[0]
+
 
 
     print('Starting analysis with the following parameters:')
@@ -56,6 +59,7 @@ def run():
     print(f'  frac_sample = {frac_sample}')
     print(f'  output_file = {output_file}')
     print(f'  output_summary = {output_summary}')
+    print(f'  debug_file = {debug_file}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -210,8 +214,13 @@ def run():
 
                 res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
         except Exception as e:
-            print(f'ERROR! : {e}')
-            return
+            if debug_file is not None:
+                file = open(f'{debug_file}.txt', "a")
+                file.write(e)
+                file.write("\n")
+                return
+            else:
+                print(f'ERROR! : {e}')
 
         df = res.as_pandas_dataframe()
 
@@ -248,6 +257,7 @@ def run_probabilistic():
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
     parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
+    parser.add_argument("--debug_file", nargs=1, type=str, default=None)
 
     value = parser.parse_args()
 
@@ -268,6 +278,7 @@ def run_probabilistic():
     tfIdf = value.tfIdf
     output_file = value.output_file[0]
     output_summary = value.output_summary
+    debug_file = value.debug_file[0]
 
 
     print('Starting analysis with the following parameters:')
@@ -278,6 +289,7 @@ def run_probabilistic():
     print(f'  frac_sample = {frac_sample}')
     print(f'  folder_results = {output_file}')
     print(f'  output_summary = {output_summary}')
+    print(f'  debug_file = {debug_file}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
     mni_t1 = image.resample_img(mni_t1, np.eye(3) * resample)
@@ -436,8 +448,13 @@ def run_probabilistic():
 
                 res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
         except Exception as e:
-            print(f'ERROR! : {e}')
-            return
+            if debug_file is not None:
+                file = open(f'{debug_file}.txt', "a")
+                file.write(e)
+                file.write("\n")
+                return
+            else:
+                print(f'ERROR! : {e}')
 
         df = res.as_pandas_dataframe()
 
