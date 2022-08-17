@@ -26,7 +26,7 @@ def run():
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
     parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
-    parser.add_argument("--debug_file", nargs=1, type=str, default=None)
+    parser.add_argument("--debug_file", nargs='?', type=str, default=None)
     value = parser.parse_args()
 
     # %%
@@ -257,7 +257,7 @@ def run_probabilistic():
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
     parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
-    parser.add_argument("--debug_file", nargs=1, type=str, default=None)
+    parser.add_argument("--debug_file", nargs='?', type=str, default=None)
 
     value = parser.parse_args()
 
@@ -405,7 +405,6 @@ def run_probabilistic():
         print('Starting analysis')
 
     for region in regions2analyse:
-
         try:
             with nl.scope as e:
                 (e.jbd @ e.p)[e.x, e.y, e.z, e.d] = (
