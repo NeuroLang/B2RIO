@@ -206,13 +206,13 @@ def run():
                     )
                 )
 
-                e.ans[e.term, e.fold, e.bf] = (
+                e.ans[e.term, e.fold, e.bf, e.p, e.pn] = (
                     e.term_prob[e.term, e.fold, e.p] &
                     e.no_term_prob[e.term, e.fold, e.pn] &
                     (e.bf == (e.p / e.pn))
                 )
 
-                res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
+                res = nl.query((e.term, e.fold, e.bf, e.p, e.pn), e.ans[e.term, e.fold, e.bf, e.p, e.pn])
         except Exception as e:
             if debug_file is not None:
                 file = open(f'{debug_file}.txt', "a")
@@ -439,13 +439,13 @@ def run_probabilistic():
                     )
                 )
 
-                e.ans[e.term, e.fold, e.bf] = (
+                e.ans[e.term, e.fold, e.bf, e.p, e.pn] = (
                     e.term_prob[e.term, e.fold, e.p] &
                     e.no_term_prob[e.term, e.fold, e.pn] &
                     (e.bf == (e.p / e.pn))
                 )
 
-                res = nl.query((e.term, e.fold, e.bf), e.ans[e.term, e.fold, e.bf])
+                res = nl.query((e.term, e.fold, e.bf, e.p, e.pn), e.ans[e.term, e.fold, e.bf, e.p, e.pn])
         except Exception as e:
             if debug_file is not None:
                 file = open(f'{debug_file}.txt', "a")
