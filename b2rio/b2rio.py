@@ -46,7 +46,7 @@ def run():
     tfIdf = value.tfIdf
     output_file = value.output_file[0]
     output_summary = value.output_summary
-    debug_file = value.debug_file[0]
+    debug_file = value.debug_file
 
 
 
@@ -278,7 +278,7 @@ def run_probabilistic():
     tfIdf = value.tfIdf
     output_file = value.output_file[0]
     output_summary = value.output_summary
-    debug_file = value.debug_file[0]
+    debug_file = value.debug_file
 
 
     print('Starting analysis with the following parameters:')
