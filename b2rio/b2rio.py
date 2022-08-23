@@ -25,6 +25,7 @@ def run():
     parser.add_argument("--radius", nargs='?', type=int, default=4)
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
+    parser.add_argument("--only_topconcepts", nargs='?', type=bool, default=False)
     parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
     parser.add_argument("--debug_file", nargs='?', type=str, default=None)
     value = parser.parse_args()
@@ -47,6 +48,7 @@ def run():
     output_file = value.output_file[0]
     output_summary = value.output_summary
     debug_file = value.debug_file
+    topconcepts = value.only_topconcepts
 
 
 
@@ -59,6 +61,7 @@ def run():
     print(f'  frac_sample = {frac_sample}')
     print(f'  output_file = {output_file}')
     print(f'  output_summary = {output_summary}')
+    print(f'  only_topconcepts = {topconcepts}')
     print(f'  debug_file = {debug_file}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
@@ -145,25 +148,47 @@ def run():
         name='brain_det'
     )
 
-    with nl.scope as e:
-        e.ontology_terms[e.onto_name, e.cp] = (
+    if topconcepts:
+        with nl.scope as e:
+            e.ontology_terms[e.onto_name, e.cp] = (
             hasTopConcept[e.uri, e.cp] &
             label[e.uri, e.onto_name]
-        )
+            )
 
-        e.lower_terms[e.term, e.cp] = (
-            e.ontology_terms[e.onto_term, e.cp] &
-            (e.term == word_lower[e.onto_term])
-        )
+            e.lower_terms[e.term, e.cp] = (
+                e.ontology_terms[e.onto_term, e.cp] &
+                (e.term == word_lower[e.onto_term])
+            )
 
-        e.f_terms[e.d, e.t, e.cp] = (
-            e.terms[e.d, e.t] &
-            e.lower_terms[e.t, e.cp]
-        )
+            e.filtered_terms[e.d, e.cp] = (
+                e.terms[e.d, e.t] &
+                e.lower_terms[e.t, e.cp]
+            )
 
-        f_term = nl.query((e.d, e.t, e.cp), e.f_terms(e.d, e.t, e.cp))
+            f_term = nl.query((e.d, e.cp), e.filtered_terms(e.d, e.cp))
+            filtered = f_term.as_pandas_dataframe()[['d', 'cp']]
 
-    filtered = f_term.as_pandas_dataframe()[['d', 't']]
+    else:
+
+        with nl.scope as e:
+            e.ontology_terms[e.onto_name, e.cp] = (
+                hasTopConcept[e.uri, e.cp] &
+                label[e.uri, e.onto_name]
+            )
+
+            e.lower_terms[e.term, e.cp] = (
+                e.ontology_terms[e.onto_term, e.cp] &
+                (e.term == word_lower[e.onto_term])
+            )
+
+            e.f_terms[e.d, e.t, e.cp] = (
+                e.terms[e.d, e.t] &
+                e.lower_terms[e.t, e.cp]
+            )
+
+            f_term = nl.query((e.d, e.t, e.cp), e.f_terms(e.d, e.t, e.cp))
+            filtered = f_term.as_pandas_dataframe()[['d', 't']]
+
     nl.add_tuple_set(filtered.values, name='filtered_terms')
 
     if len(pmaps_4d.dataobj.shape) == 4:
@@ -224,26 +249,43 @@ def run():
 
         df = res.as_pandas_dataframe()
 
-        df_cp = f_term.as_pandas_dataframe()[['cp', 't']]
-        df_cp = df_cp.drop_duplicates()
+        if not topconcepts:
+            df_cp = f_term.as_pandas_dataframe()[['cp', 't']]
+            df_cp = df_cp.drop_duplicates()
 
-        df = df.set_index('term').join(df_cp.set_index('t'))
-        df.reset_index(inplace=True)
-        df['cp'] = df.cp.fillna('')
-        df = df.rename(columns={'cp': 'topConcept', 'index': 'term'})
+            df = df.set_index('term').join(df_cp.set_index('t'))
+            df.reset_index(inplace=True)
+            df['cp'] = df.cp.fillna('')
+            df = df.rename(columns={'cp': 'topConcept', 'index': 'term'})
 
-        if len(regions2analyse) > 1:
-            df.to_csv(f'{output_file}_region{region}.csv', index=False)
-            if output_summary:
-                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
-                df.reset_index(inplace=True)
-                df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
+            if len(regions2analyse) > 1:
+                df.to_csv(f'{output_file}_region{region}.csv', index=False)
+                if output_summary:
+                    df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                    df.reset_index(inplace=True)
+                    df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
+            else:
+                df.to_csv(f'{output_file}.csv', index=False)
+                if output_summary:
+                    df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                    df.reset_index(inplace=True)
+                    df.to_csv(f'{output_file}_summary.csv', index=False)
         else:
-            df.to_csv(f'{output_file}.csv', index=False)
-            if output_summary:
-                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
-                df.reset_index(inplace=True)
-                df.to_csv(f'{output_file}_summary.csv', index=False)
+            df = df.rename(columns={'term': 'topConcept'})
+            if len(regions2analyse) > 1:
+                df.to_csv(f'{output_file}_region{region}.csv', index=False)
+                if output_summary:
+                    df = df.groupby(['topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                    df.reset_index(inplace=True)
+                    df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
+            else:
+                df.to_csv(f'{output_file}.csv', index=False)
+                if output_summary:
+                    df = df.groupby(['topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                    df.reset_index(inplace=True)
+                    df.to_csv(f'{output_file}_summary.csv', index=False)
+
+
 
         print(f'Results ready!')
 
@@ -256,6 +298,7 @@ def run_probabilistic():
     parser.add_argument("--radius", nargs='?', type=int, default=4)
     parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
+    parser.add_argument("--only_topconcepts", nargs='?', type=bool, default=False)
     parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
     parser.add_argument("--debug_file", nargs='?', type=str, default=None)
 
@@ -279,6 +322,7 @@ def run_probabilistic():
     output_file = value.output_file[0]
     output_summary = value.output_summary
     debug_file = value.debug_file
+    topconcepts = value.only_topconcepts
 
 
     print('Starting analysis with the following parameters:')
@@ -287,8 +331,9 @@ def run_probabilistic():
     print(f'  radius = {radius}')
     print(f'  tfIdf = {tfIdf}')
     print(f'  frac_sample = {frac_sample}')
-    print(f'  folder_results = {output_file}')
+    print(f'  output_file = {output_file}')
     print(f'  output_summary = {output_summary}')
+    print(f'  only_topconcepts = {topconcepts}')
     print(f'  debug_file = {debug_file}')
 
     mni_t1 = nib.load(datasets.fetch_icbm152_2009()['t1'])
@@ -378,25 +423,47 @@ def run_probabilistic():
         name='brain_det'
     )
 
-    with nl.scope as e:
-        e.ontology_terms[e.onto_name, e.cp] = (
+    if topconcepts:
+        with nl.scope as e:
+            e.ontology_terms[e.onto_name, e.cp] = (
             hasTopConcept[e.uri, e.cp] &
             label[e.uri, e.onto_name]
-        )
+            )
 
-        e.lower_terms[e.term, e.cp] = (
-            e.ontology_terms[e.onto_term, e.cp] &
-            (e.term == word_lower[e.onto_term])
-        )
+            e.lower_terms[e.term, e.cp] = (
+                e.ontology_terms[e.onto_term, e.cp] &
+                (e.term == word_lower[e.onto_term])
+            )
 
-        e.f_terms[e.d, e.t, e.cp] = (
-            e.terms[e.d, e.t] &
-            e.lower_terms[e.t, e.cp]
-        )
+            e.filtered_terms[e.d, e.cp] = (
+                e.terms[e.d, e.t] &
+                e.lower_terms[e.t, e.cp]
+            )
 
-        f_term = nl.query((e.d, e.t, e.cp), e.f_terms(e.d, e.t, e.cp))
+            f_term = nl.query((e.d, e.cp), e.filtered_terms(e.d, e.cp))
+            filtered = f_term.as_pandas_dataframe()[['d', 'cp']]
 
-    filtered = f_term.as_pandas_dataframe()[['d', 't']]
+    else:
+
+        with nl.scope as e:
+            e.ontology_terms[e.onto_name, e.cp] = (
+                hasTopConcept[e.uri, e.cp] &
+                label[e.uri, e.onto_name]
+            )
+
+            e.lower_terms[e.term, e.cp] = (
+                e.ontology_terms[e.onto_term, e.cp] &
+                (e.term == word_lower[e.onto_term])
+            )
+
+            e.f_terms[e.d, e.t, e.cp] = (
+                e.terms[e.d, e.t] &
+                e.lower_terms[e.t, e.cp]
+            )
+
+            f_term = nl.query((e.d, e.t, e.cp), e.f_terms(e.d, e.t, e.cp))
+            filtered = f_term.as_pandas_dataframe()[['d', 't']]
+
     nl.add_tuple_set(filtered.values, name='filtered_terms')
 
     if len(pmaps_4d.dataobj.shape) == 4:
@@ -457,26 +524,41 @@ def run_probabilistic():
 
         df = res.as_pandas_dataframe()
 
-        df_cp = f_term.as_pandas_dataframe()[['cp', 't']]
-        df_cp = df_cp.drop_duplicates()
+        if not topconcepts:
+            df_cp = f_term.as_pandas_dataframe()[['cp', 't']]
+            df_cp = df_cp.drop_duplicates()
 
-        df = df.set_index('term').join(df_cp.set_index('t'))
-        df.reset_index(inplace=True)
-        df['cp'] = df.cp.fillna('')
-        df = df.rename(columns={'cp': 'topConcept', 'index': 'term'})
+            df = df.set_index('term').join(df_cp.set_index('t'))
+            df.reset_index(inplace=True)
+            df['cp'] = df.cp.fillna('')
+            df = df.rename(columns={'cp': 'topConcept', 'index': 'term'})
 
-        if len(regions2analyse) > 1:
-            df.to_csv(f'{output_file}_region{region}.csv', index=False)
-            if output_summary:
-                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
-                df.reset_index(inplace=True)
-                df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
+            if len(regions2analyse) > 1:
+                df.to_csv(f'{output_file}_region{region}.csv', index=False)
+                if output_summary:
+                    df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                    df.reset_index(inplace=True)
+                    df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
+            else:
+                df.to_csv(f'{output_file}.csv', index=False)
+                if output_summary:
+                    df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                    df.reset_index(inplace=True)
+                    df.to_csv(f'{output_file}_summary.csv', index=False)
         else:
-            df.to_csv(f'{output_file}.csv', index=False)
-            if output_summary:
-                df = df.groupby(['term','topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
-                df.reset_index(inplace=True)
-                df.to_csv(f'{output_file}_summary.csv', index=False)
+            df = df.rename(columns={'term': 'topConcept'})
+            if len(regions2analyse) > 1:
+                df.to_csv(f'{output_file}_region{region}.csv', index=False)
+                if output_summary:
+                    df = df.groupby(['topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                    df.reset_index(inplace=True)
+                    df.to_csv(f'{output_file}_region{region}_summary.csv', index=False)
+            else:
+                df.to_csv(f'{output_file}.csv', index=False)
+                if output_summary:
+                    df = df.groupby(['topConcept']).bf.agg(['mean','std','skew']).sort_values('mean', ascending=False)
+                    df.reset_index(inplace=True)
+                    df.to_csv(f'{output_file}_summary.csv', index=False)
 
     print(f'Results ready!')
 
