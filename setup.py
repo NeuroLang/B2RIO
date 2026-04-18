@@ -14,7 +14,7 @@ setup(
         description ='Brain t(w)o Reverse Inference Ontology',
         license ='MIT',
         packages = find_packages(),
-        python_requires='>3.8',
+        python_requires='>=3.12',
         entry_points ={
             'console_scripts': [
                 'b2rio = b2rio.b2rio:run',
