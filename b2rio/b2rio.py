@@ -7,11 +7,21 @@ config.disable_expression_type_printing()
 config.disable_probabilistic_solver_check_unate()
 import argparse
 import warnings
+from pathlib import Path
 
 from neurolang.frontend import NeurolangPDL
 from neurolang.frontend.neurosynth_utils import (
     get_ns_mni_peaks_reported, get_ns_term_study_associations)
 from nilearn import datasets, image
+
+try:
+    from nilearn.datasets.utils import _fetch_files, _get_dataset_dir
+except ImportError:
+    # nilearn >= 0.11: functions were moved and renamed
+    from nilearn.datasets._utils import (
+        fetch_files as _fetch_files,
+        get_dataset_dir as _get_dataset_dir,
+    )
 
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
@@ -23,7 +33,7 @@ def run():
     parser.add_argument("--resample", nargs='?', type=int, default=1)
     parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
     parser.add_argument("--radius", nargs='?', type=int, default=4)
-    parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
+    parser.add_argument("--tfIdf", nargs='?', type=float, default=1e-3)
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
     parser.add_argument("--only_topconcepts", nargs='?', type=bool, default=False)
     parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
@@ -91,8 +101,8 @@ def run():
         return
 
 
-    ns_terms = get_ns_term_study_associations('./', tfidf_threshold=tfIdf)[['id', 'term']]
-    ns_data = get_ns_mni_peaks_reported('./')
+    ns_terms = get_ns_term_study_associations(Path('./'), tfidf_threshold=tfIdf)[['id', 'term']]
+    ns_data = get_ns_mni_peaks_reported(Path('./'))
     ns_docs = ns_data[['id']].drop_duplicates()
 
     ijk_positions = (
@@ -108,8 +118,8 @@ def run():
     ns_data['id'] = ns_data.id.astype(int)
     ns_data = ns_data[['id', 'i', 'j', 'k']].values
 
-    cogAt = datasets.utils._fetch_files(
-        datasets.utils._get_dataset_dir('CogAt'),
+    cogAt = _fetch_files(
+        _get_dataset_dir('CogAt'),
         [
             (
                 'cogat.xml',
@@ -296,7 +306,7 @@ def run_probabilistic():
     parser.add_argument("--resample", nargs='?', type=int, default=1)
     parser.add_argument("--frac_sample", nargs='?', type=int, default=0.7)
     parser.add_argument("--radius", nargs='?', type=int, default=4)
-    parser.add_argument("--tfIdf", nargs='?', type=str, default='1e-3')
+    parser.add_argument("--tfIdf", nargs='?', type=float, default=1e-3)
     parser.add_argument("--output_file", nargs=1, type=str, default=None)
     parser.add_argument("--only_topconcepts", nargs='?', type=bool, default=False)
     parser.add_argument("--output_summary", nargs='?', type=bool, default=False)
@@ -364,8 +374,8 @@ def run_probabilistic():
         print('The nifti file must contain 3 or 4 dimensions')
         return
 
-    ns_terms = get_ns_term_study_associations('./', tfidf_threshold=tfIdf)[['id', 'term']]
-    ns_data = get_ns_mni_peaks_reported('./')
+    ns_terms = get_ns_term_study_associations(Path('./'), tfidf_threshold=tfIdf)[['id', 'term']]
+    ns_data = get_ns_mni_peaks_reported(Path('./'))
     ns_docs = ns_data[['id']].drop_duplicates()
 
     ijk_positions = (
@@ -382,8 +392,8 @@ def run_probabilistic():
     ns_data = ns_data[['id', 'i', 'j', 'k']].values
 
 
-    cogAt = datasets.utils._fetch_files(
-        datasets.utils._get_dataset_dir('CogAt'),
+    cogAt = _fetch_files(
+        _get_dataset_dir('CogAt'),
         [
             (
                 'cogat.xml',
